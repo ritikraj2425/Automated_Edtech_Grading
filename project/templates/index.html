@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Answer Sheet Evaluator</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #f5f3ef;
+            --surface: #ffffff;
+            --border: #dedad4;
+            --text: #1a1916;
+            --muted: #7a776f;
+            --accent: #2d6a4f;
+            --accent-lt: #e8f4f0;
+            --warn: #c0392b;
+            --warn-lt: #fdf0ef;
+            --mono: 'DM Mono', monospace;
+            --sans: 'DM Sans', sans-serif;
+        }
+
+        body {
+            font-family: var(--sans);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        header {
+            max-width: 780px;
+            margin: 0 auto 40px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 22px;
+            font-weight: 500;
+            letter-spacing: -0.3px;
+        }
+
+        header p {
+            font-size: 14px;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        .container {
+            max-width: 780px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* ── Card ── */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 24px;
+        }
+
+        .card-title {
+            font-size: 13px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--muted);
+            margin-bottom: 16px;
+        }
+
+        /* ── Upload zone ── */
+        .upload-zone {
+            border: 1.5px dashed var(--border);
+            border-radius: 8px;
+            padding: 32px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+            position: relative;
+        }
+
+        .upload-zone:hover,
+        .upload-zone.dragover {
+            border-color: var(--accent);
+            background: var(--accent-lt);
+        }
+
+        .upload-zone input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+
+        .upload-zone .icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .upload-zone p {
+            font-size: 14px;
+            color: var(--muted);
+        }
+
+        .upload-zone .filename {
+            margin-top: 8px;
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--accent);
+            font-weight: 500;
+        }
+
+        /* ── Textarea ── */
+        textarea {
+            width: 100%;
+            font-family: var(--mono);
+            font-size: 13px;
+            line-height: 1.6;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px;
+            resize: vertical;
+            min-height: 120px;
+            background: var(--bg);
+            color: var(--text);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        textarea:focus {
+            border-color: var(--accent);
+        }
+
+        /* ── Button ── */
+        button[type="submit"] {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 13px 28px;
+            font-family: var(--sans);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            width: 100%;
+        }
+
+        button[type="submit"]:hover {
+            opacity: 0.88;
+        }
+
+        button[type="submit"]:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* ── Spinner ── */
+        .spinner {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .spinner.active {
+            display: block;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .spinner::before {
+            content: '';
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            vertical-align: middle;
+            margin-right: 10px;
+        }
+
+        /* ── Results ── */
+        #results {
+            display: none;
+        }
+
+        #results.show {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Score bar */
+        .score-row {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .score-number {
+            font-size: 48px;
+            font-weight: 300;
+            font-family: var(--mono);
+            line-height: 1;
+            white-space: nowrap;
+        }
+
+        .score-number span {
+            font-size: 20px;
+            color: var(--muted);
+        }
+
+        .score-right {
+            flex: 1;
+        }
+
+        .grade-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+
+        .grade-Excellent {
+            background: #e8f4f0;
+            color: #1a6b45;
+        }
+
+        .grade-Good {
+            background: #eaf6e8;
+            color: #2d6a1f;
+        }
+
+        .grade-Average {
+            background: #fdf5e0;
+            color: #8a6200;
+        }
+
+        .grade-BelowAverage {
+            background: #fdf0ef;
+            color: #a02020;
+        }
+
+        .grade-Poor {
+            background: #fdf0ef;
+            color: var(--warn);
+        }
+
+        .bar-track {
+            width: 100%;
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            background: var(--accent);
+            transition: width 0.8s ease;
+        }
+
+        .sim-label {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 6px;
+            font-family: var(--mono);
+        }
+
+        /* Keywords */
+        .kw-section {
+            margin-top: 16px;
+        }
+
+        .kw-title {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: 8px;
+        }
+
+        .kw-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .kw {
+            font-family: var(--mono);
+            font-size: 12px;
+            padding: 3px 9px;
+            border-radius: 4px;
+        }
+
+        .kw-match {
+            background: var(--accent-lt);
+            color: #1a6b45;
+        }
+
+        .kw-miss {
+            background: var(--warn-lt);
+            color: var(--warn);
+        }
+
+        /* Annotated image */
+        #ann-img {
+            width: 100%;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+
+        /* OCR text blocks */
+        .block-item {
+            background: var(--bg);
+            border-radius: 6px;
+            padding: 12px 14px;
+            font-family: var(--mono);
+            font-size: 12px;
+            line-height: 1.7;
+            margin-bottom: 10px;
+            border-left: 3px solid var(--border);
+            white-space: pre-wrap;
+        }
+
+        .block-label {
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+
+        /* Error */
+        .error-msg {
+            background: var(--warn-lt);
+            border: 1px solid #f5c6c2;
+            color: var(--warn);
+            border-radius: 8px;
+            padding: 14px 18px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .error-msg.show {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>Answer Sheet Evaluator</h1>
+        <p>Upload a handwritten answer sheet and provide the correct answer to get a score.</p>
+    </header>
+
+    <div class="container">
+
+        <!-- Input card -->
+        <div class="card">
+            <div class="card-title">Inputs</div>
+
+            <form id="eval-form">
+
+                <p style="font-size:13px; color:var(--muted); margin-bottom:8px;">Answer sheet image</p>
+                <div class="upload-zone" id="drop-zone">
+                    <input type="file" id="sheet-input" name="sheet" accept=".png,.jpg,.jpeg">
+                    <div class="icon">&#128196;</div>
+                    <p>Click to upload or drag and drop</p>
+                    <p style="font-size:12px; margin-top:4px;">PNG or JPG</p>
+                    <div class="filename" id="file-name"></div>
+                </div>
+
+                <p style="font-size:13px; color:var(--muted); margin: 20px 0 8px;">Correct answer</p>
+                <textarea id="teacher-input" name="teacher_answer"
+                    placeholder="Type or paste the model answer here..."></textarea>
+
+                <div style="margin-top:16px;">
+                    <button type="submit" id="submit-btn">Evaluate</button>
+                </div>
+
+            </form>
+        </div>
+
+        <!-- Error -->
+        <div class="error-msg" id="error-msg"></div>
+
+        <!-- Spinner -->
+        <div class="spinner" id="spinner">Processing — this may take a few seconds</div>
+
+        <!-- Results -->
+        <div id="results">
+
+            <!-- Score card -->
+            <div class="card">
+                <div class="card-title">Score</div>
+                <div class="score-row">
+                    <div class="score-number" id="score-display">—</div>
+                    <div class="score-right">
+                        <div class="grade-badge" id="grade-badge">—</div>
+                        <div class="bar-track">
+                            <div class="bar-fill" id="bar-fill" style="width:0%"></div>
+                        </div>
+                        <div class="sim-label" id="sim-label">Similarity: —</div>
+                    </div>
+                </div>
+
+                <!-- Keywords -->
+                <div class="kw-section">
+                    <div class="kw-title">Keywords matched</div>
+                    <div class="kw-list" id="matched-kw"></div>
+                </div>
+                <div class="kw-section" style="margin-top:12px;">
+                    <div class="kw-title">Keywords missed</div>
+                    <div class="kw-list" id="missed-kw"></div>
+                </div>
+            </div>
+
+            <!-- Annotated image -->
+            <div class="card">
+                <div class="card-title">Detected answer blocks</div>
+                <img id="ann-img" src="" alt="Annotated sheet">
+            </div>
+
+            <!-- Extracted text -->
+            <div class="card">
+                <div class="card-title">Extracted text per block</div>
+                <div id="blocks-list"></div>
+            </div>
+
+        </div><!-- /results -->
+
+    </div><!-- /container -->
+
+    <script>
+        const form = document.getElementById('eval-form');
+        const sheetInput = document.getElementById('sheet-input');
+        const fileLabel = document.getElementById('file-name');
+        const dropZone = document.getElementById('drop-zone');
+        const spinner = document.getElementById('spinner');
+        const results = document.getElementById('results');
+        const errorMsg = document.getElementById('error-msg');
+        const submitBtn = document.getElementById('submit-btn');
+
+        // File name preview
+        sheetInput.addEventListener('change', () => {
+            fileLabel.textContent = sheetInput.files[0]?.name || '';
+        });
+
+        // Drag and drop
+        dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', e => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files[0]) {
+                sheetInput.files = e.dataTransfer.files;
+                fileLabel.textContent = e.dataTransfer.files[0].name;
+            }
+        });
+
+        // Submit
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Reset UI
+            errorMsg.classList.remove('show');
+            results.classList.remove('show');
+            spinner.classList.add('active');
+            submitBtn.disabled = true;
+
+            const fd = new FormData();
+            fd.append('sheet', sheetInput.files[0]);
+            fd.append('teacher_answer', document.getElementById('teacher-input').value);
+
+            try {
+                const res = await fetch('/evaluate', { method: 'POST', body: fd });
+                const data = await res.json();
+
+                if (data.error) throw new Error(data.error);
+
+                renderResults(data);
+
+            } catch (err) {
+                errorMsg.textContent = err.message;
+                errorMsg.classList.add('show');
+            } finally {
+                spinner.classList.remove('active');
+                submitBtn.disabled = false;
+            }
+        });
+
+        function renderResults(data) {
+            // Score
+            document.getElementById('score-display').innerHTML =
+                `${data.marks}<span> / ${data.total}</span>`;
+
+            // Grade badge
+            const badge = document.getElementById('grade-badge');
+            const gradeKey = data.grade.replace(' ', '');
+            badge.textContent = data.grade;
+            badge.className = `grade-badge grade-${gradeKey}`;
+
+            // Bar
+            const pct = (data.marks / data.total) * 100;
+            document.getElementById('bar-fill').style.width = pct + '%';
+
+            // Similarity
+            document.getElementById('sim-label').textContent =
+                `Similarity score: ${data.similarity} / 1.0`;
+
+            // Keywords
+            const matchEl = document.getElementById('matched-kw');
+            const missEl = document.getElementById('missed-kw');
+            matchEl.innerHTML = data.matched.length
+                ? data.matched.map(k => `<span class="kw kw-match">${k}</span>`).join('')
+                : '<span style="font-size:13px;color:var(--muted)">None</span>';
+            missEl.innerHTML = data.missed.length
+                ? data.missed.map(k => `<span class="kw kw-miss">${k}</span>`).join('')
+                : '<span style="font-size:13px;color:var(--muted)">None</span>';
+
+            // Annotated image
+            document.getElementById('ann-img').src = 'data:image/png;base64,' + data.image;
+
+            // Block texts
+            const blocksEl = document.getElementById('blocks-list');
+            blocksEl.innerHTML = data.blocks.map((t, i) => `
+      <div class="block-item">
+        <div class="block-label">Block ${i + 1}</div>${t || '(no text detected)'}
+      </div>
+    `).join('');
+
+            results.classList.add('show');
+            results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    </script>
+
+</body>
+
+</html>

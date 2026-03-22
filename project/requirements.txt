@@ -1,0 +1,8 @@
+flask
+opencv-python
+pillow
+pytesseract
+numpy
+scipy
+scikit-learn
+# source venv/bin/activate
