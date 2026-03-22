@@ -6,3 +6,4 @@ numpy
 scipy
 scikit-learn
 # source venv/bin/activate
+# http://127.0.0.1:5000/
