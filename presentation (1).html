@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Answer Sheet Evaluator — Project Presentation</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --ink: #18181a; --ink2: #4a4a50; --ink3: #8a8a94;
+  --paper: #f7f5f0; --surface: #ffffff; --border: #e2e0da;
+  --green: #1a6b45; --green-lt: #e8f4ee;
+  --amber: #92520a; --amber-lt: #fdf3e0;
+  --red: #a02020;   --red-lt: #fdf0ef;
+  --blue: #1a4a8a;  --blue-lt: #eef3fb;
+  --serif: 'Instrument Serif', Georgia, serif;
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'IBM Plex Sans', sans-serif;
+}
+body { font-family: var(--sans); background: var(--paper); color: var(--ink); line-height: 1.7; }
+nav {
+  position: sticky; top: 0; background: var(--surface);
+  border-bottom: 1px solid var(--border); z-index: 100;
+  padding: 0 40px; display: flex; align-items: center;
+  gap: 32px; height: 52px; overflow-x: auto;
+}
+nav a {
+  font-size: 13px; color: var(--ink3); text-decoration: none;
+  white-space: nowrap; padding: 4px 0;
+  border-bottom: 2px solid transparent; transition: color .2s, border-color .2s;
+}
+nav a:hover, nav a.active { color: var(--ink); border-bottom-color: var(--ink); }
+section { max-width: 820px; margin: 0 auto; padding: 64px 40px; border-bottom: 1px solid var(--border); }
+section:last-child { border-bottom: none; }
+.section-label { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink3); margin-bottom: 12px; }
+h2 { font-family: var(--serif); font-size: 36px; font-weight: 400; line-height: 1.2; margin-bottom: 24px; }
+p { font-size: 15px; color: var(--ink2); margin-bottom: 16px; }
+#hero { padding: 80px 40px 64px; border-bottom: 1px solid var(--border); }
+.hero-label { font-family: var(--mono); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--ink3); margin-bottom: 20px; }
+#hero h1 { font-family: var(--serif); font-size: 52px; font-weight: 400; line-height: 1.1; letter-spacing: -1px; margin-bottom: 20px; max-width: 600px; }
+#hero h1 em { font-style: italic; color: var(--ink3); }
+.hero-sub { font-size: 16px; color: var(--ink2); max-width: 540px; margin-bottom: 32px; }
+.tag-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.tag { font-family: var(--mono); font-size: 11px; padding: 4px 10px; border-radius: 3px; font-weight: 500; }
+.tag-green { background: var(--green-lt); color: var(--green); }
+.tag-amber { background: var(--amber-lt); color: var(--amber); }
+.tag-blue  { background: var(--blue-lt);  color: var(--blue);  }
+.timeline { position: relative; padding-left: 28px; margin-top: 8px; }
+.timeline::before { content: ''; position: absolute; left: 7px; top: 8px; bottom: 8px; width: 1px; background: var(--border); }
+.tl-item { position: relative; margin-bottom: 32px; }
+.tl-item::before { content: ''; position: absolute; left: -24px; top: 7px; width: 8px; height: 8px; border-radius: 50%; background: var(--border); border: 2px solid var(--paper); }
+.tl-item.tried::before  { background: var(--red);   }
+.tl-item.chosen::before { background: var(--green); }
+.tl-item.future::before { background: var(--amber); }
+.tl-status { font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+.status-tried  { color: var(--red);   }
+.status-chosen { color: var(--green); }
+.status-future { color: var(--amber); }
+.tl-title { font-size: 15px; font-weight: 500; margin-bottom: 4px; }
+.tl-desc  { font-size: 14px; color: var(--ink2); margin: 0; }
+.model-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 8px; }
+@media (max-width: 600px) { .model-grid { grid-template-columns: 1fr; } }
+.model-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+.model-card.current { border-color: var(--green); background: var(--green-lt); }
+.model-card.future  { border-style: dashed; }
+.mc-label { font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+.mc-label.cur   { color: var(--green); }
+.mc-label.fut   { color: var(--amber); }
+.mc-name  { font-size: 15px; font-weight: 500; margin-bottom: 6px; }
+.mc-desc  { font-size: 13px; color: var(--ink2); line-height: 1.6; margin: 0; }
+.pipeline { display: flex; flex-direction: column; gap: 2px; margin-top: 8px; }
+.pipe-step { display: flex; align-items: flex-start; gap: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; }
+.pipe-num { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--ink3); min-width: 24px; padding-top: 2px; }
+.pipe-title  { font-size: 14px; font-weight: 500; margin-bottom: 3px; }
+.pipe-detail { font-size: 13px; color: var(--ink2); margin: 0; font-family: var(--mono); }
+.pipe-arrow  { text-align: center; color: var(--border); font-size: 18px; line-height: 1; margin: 1px 0; }
+.qa-box { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-top: 16px; }
+.qa-tab-row { display: flex; border-bottom: 1px solid var(--border); }
+.qa-tab { padding: 10px 20px; font-size: 13px; font-weight: 500; cursor: pointer; border-right: 1px solid var(--border); background: var(--paper); color: var(--ink2); transition: background .15s; user-select: none; }
+.qa-tab:last-child { border-right: none; }
+.qa-tab.active { background: var(--surface); color: var(--ink); }
+.qa-panel { padding: 24px; display: none; }
+.qa-panel.active { display: block; }
+.qa-panel p { font-size: 14px; margin-bottom: 12px; }
+.code-block { background: #18181a; color: #c9d1d9; border-radius: 6px; padding: 16px; font-family: var(--mono); font-size: 12px; line-height: 1.7; overflow-x: auto; margin: 12px 0; }
+.cg { color: #7ee787; } .ca { color: #e3b341; } .cc { color: #8b949e; }
+.limit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
+@media (max-width: 600px) { .limit-grid { grid-template-columns: 1fr; } }
+.limit-card { border: 1px solid var(--border); border-radius: 8px; padding: 18px; background: var(--surface); }
+.limit-card.now   { border-left: 3px solid var(--red);   }
+.limit-card.next  { border-left: 3px solid var(--amber); }
+.limit-card.later { border-left: 3px solid var(--blue);  }
+.lc-badge { font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+.lc-badge.now   { color: var(--red);   }
+.lc-badge.next  { color: var(--amber); }
+.lc-badge.later { color: var(--blue);  }
+.lc-title { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+.lc-desc  { font-size: 13px; color: var(--ink2); margin: 0; }
+footer { text-align: center; padding: 40px; font-size: 13px; color: var(--ink3); font-family: var(--mono); }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="#hero"     class="active">Overview</a>
+  <a href="#journey">Research</a>
+  <a href="#models">Models</a>
+  <a href="#pipeline">Pipeline</a>
+  <a href="#multi-q">Multi-question</a>
+  <a href="#limits">Limitations</a>
+  <a href="#roadmap">Roadmap</a>
+</nav>
+
+<section id="hero">
+  <div class="hero-label">Mini Project — AI &amp; NLP</div>
+  <h1>Automated Answer Sheet <em>Grading</em></h1>
+  <p class="hero-sub">
+    Upload a handwritten answer sheet, it detects each answer block, reads the text using OCR,
+    and gives marks by comparing it with the teacher's answer.
+  </p>
+  <div class="tag-row">
+    <span class="tag tag-blue">OpenCV</span>
+    <span class="tag tag-blue">Tesseract OCR</span>
+    <span class="tag tag-green">TF-IDF</span>
+    <span class="tag tag-green">Cosine Similarity</span>
+    <span class="tag tag-amber">Flask</span>
+    <span class="tag tag-amber">Python</span>
+  </div>
+</section>
+
+<section id="journey">
+  <div class="section-label">Section 01</div>
+  <h2>How I approached this</h2>
+  <p>
+    I didn't directly start writing code. First I read about what tools already exist for this kind of problem,
+    tried a few things, and most of them didn't work the way I expected. Here's what I went through.
+  </p>
+
+  <div class="timeline">
+
+    <div class="tl-item tried">
+      <div class="tl-status status-tried">Tried — didn't work</div>
+      <div class="tl-title">Tesseract OCR alone</div>
+      <p class="tl-desc">
+        First I read about Tesseract. It reads text well, but the problem is it won't automatically
+        detect "answers" as logical regions — it only detects text-level boxes like characters, words,
+        lines, and paragraphs. So there's no way to know where Q1's answer ends and Q2's answer starts.
+      </p>
+    </div>
+
+    <div class="tl-item tried">
+      <div class="tl-status status-tried">Read about — too complex for now</div>
+      <div class="tl-title">LayoutLM (Microsoft)</div>
+      <p class="tl-desc">
+        LayoutLM understands document layout along with text. But it needs fine-tuning on your specific
+        document type and I didn't have labelled training data for answer sheets, so it wasn't practical
+        to use right now.
+      </p>
+    </div>
+
+    <div class="tl-item tried">
+      <div class="tl-status status-tried">Tried — needed too much training data</div>
+      <div class="tl-title">YOLO through LayoutParser</div>
+      <p class="tl-desc">
+        That's why I thought of using YOLO, which can automatically detect answer boxes as regions.
+        Instead of training YOLO from scratch, I tried using a pre-trained YOLO model through LayoutParser.
+        These models often work reasonably well on answer sheets because answers appear as large text blocks —
+        but the pre-trained ones were trained on research papers and receipts, not exam sheets.
+        Training a custom one needed hundreds of labelled images which I didn't have.
+      </p>
+    </div>
+
+    <div class="tl-item chosen">
+      <div class="tl-status status-chosen">What I finally used</div>
+      <div class="tl-title">OpenCV horizontal projection</div>
+      <p class="tl-desc">
+        Then I realised I don't need a complex model for this. Answer blocks are separated by blank
+        horizontal strips on the page. OpenCV can find these gaps just by counting ink pixels per row —
+        rows with no ink are the gaps between answers. No training, no internet needed. It's not perfect
+        but it works well enough for a standard answer sheet.
+      </p>
+    </div>
+
+  </div>
+</section>
+
+<section id="models">
+  <div class="section-label">Section 02</div>
+  <h2>What each tool does and why I used it</h2>
+
+  <div class="model-grid">
+
+    <div class="model-card current">
+      <div class="mc-label cur">Block detection — using now</div>
+      <div class="mc-name">OpenCV — horizontal projection</div>
+      <p class="mc-desc">Counts ink pixels row by row. Rows with no ink are gaps between answers. Groups the inky rows into blocks. No model, no training, runs instantly.</p>
+    </div>
+
+    <div class="model-card future">
+      <div class="mc-label fut">Block detection — future</div>
+      <div class="mc-name">Custom trained YOLO</div>
+      <p class="mc-desc">If I collect and label enough answer sheet images, YOLO would give much more accurate detection — especially for messy or non-standard sheets.</p>
+    </div>
+
+    <div class="model-card current">
+      <div class="mc-label cur">Text reading — using now</div>
+      <div class="mc-name">Tesseract OCR</div>
+      <p class="mc-desc">Once blocks are found, Tesseract reads the text inside each one. Free, works offline. I use PSM 6 mode which tells it to treat the crop as one uniform block of text.</p>
+    </div>
+
+    <div class="model-card future">
+      <div class="mc-label fut">Text reading — future</div>
+      <div class="mc-name">Google Vision API or TrOCR</div>
+      <p class="mc-desc">Tesseract struggles with really messy handwriting. Google Vision handles it much better. TrOCR is a transformer model specifically built for handwritten text.</p>
+    </div>
+
+    <div class="model-card current">
+      <div class="mc-label cur">Scoring — using now</div>
+      <div class="mc-name">TF-IDF + Cosine Similarity</div>
+      <p class="mc-desc">Converts student and teacher answers into vectors where important words get higher values. Then measures how similar those vectors are. No downloads, works in under a second. Main problem — it matches words, not meaning.</p>
+    </div>
+
+    <div class="model-card future">
+      <div class="mc-label fut">Scoring — future</div>
+      <div class="mc-name">Sentence-BERT</div>
+      <p class="mc-desc">Understands meaning, not just word overlap. "Banks gave credit" and "loans were provided" would score high because they mean the same thing — TF-IDF would score them low.</p>
+    </div>
+
+    <div class="model-card current">
+      <div class="mc-label cur">Web server</div>
+      <div class="mc-name">Flask</div>
+      <p class="mc-desc">Connects the browser to the Python code. When a teacher uploads an image, Flask receives it, runs OCR and marking, and sends results back. Simple to run locally and easy to deploy later.</p>
+    </div>
+
+    <div class="model-card current">
+      <div class="mc-label cur">Image preprocessing</div>
+      <div class="mc-name">Adaptive thresholding</div>
+      <p class="mc-desc">Converts the photo to black and white. Needed because phone photos have uneven lighting. Adaptive thresholding adjusts per region so ink is detected cleanly everywhere.</p>
+    </div>
+
+  </div>
+</section>
+
+<section id="pipeline">
+  <div class="section-label">Section 03</div>
+  <h2>What happens when you upload a sheet</h2>
+
+  <div class="pipeline">
+    <div class="pipe-step">
+      <div class="pipe-num">01</div>
+      <div class="pipe-content">
+        <div class="pipe-title">Image uploaded from browser</div>
+        <p class="pipe-detail">Flask receives it and saves to uploads/ folder</p>
+      </div>
+    </div>
+    <div class="pipe-arrow">↓</div>
+    <div class="pipe-step">
+      <div class="pipe-num">02</div>
+      <div class="pipe-content">
+        <div class="pipe-title">Convert to grayscale and blur slightly</div>
+        <p class="pipe-detail">cv2.cvtColor() + cv2.GaussianBlur() — removes small noise</p>
+      </div>
+    </div>
+    <div class="pipe-arrow">↓</div>
+    <div class="pipe-step">
+      <div class="pipe-num">03</div>
+      <div class="pipe-content">
+        <div class="pipe-title">Adaptive threshold — ink becomes white, paper black</div>
+        <p class="pipe-detail">cv2.adaptiveThreshold() — handles uneven phone photo lighting</p>
+      </div>
+    </div>
+    <div class="pipe-arrow">↓</div>
+    <div class="pipe-step">
+      <div class="pipe-num">04</div>
+      <div class="pipe-content">
+        <div class="pipe-title">Count ink pixels per row — find answer blocks</div>
+        <p class="pipe-detail">np.sum(binary, axis=1) — rows with zero ink = gaps between answers</p>
+      </div>
+    </div>
+    <div class="pipe-arrow">↓</div>
+    <div class="pipe-step">
+      <div class="pipe-num">05</div>
+      <div class="pipe-content">
+        <div class="pipe-title">Crop each block and run Tesseract on it</div>
+        <p class="pipe-detail">pytesseract.image_to_string() with --oem 3 --psm 6</p>
+      </div>
+    </div>
+    <div class="pipe-arrow">↓</div>
+    <div class="pipe-step">
+      <div class="pipe-num">06</div>
+      <div class="pipe-content">
+        <div class="pipe-title">Convert both answers to TF-IDF vectors</div>
+        <p class="pipe-detail">TfidfVectorizer().fit_transform([student, teacher])</p>
+      </div>
+    </div>
+    <div class="pipe-arrow">↓</div>
+    <div class="pipe-step">
+      <div class="pipe-num">07</div>
+      <div class="pipe-content">
+        <div class="pipe-title">Cosine similarity gives a score 0 to 1 → scaled to marks</div>
+        <p class="pipe-detail">cosine_similarity() → fixed thresholds → marks out of 10</p>
+      </div>
+    </div>
+    <div class="pipe-arrow">↓</div>
+    <div class="pipe-step">
+      <div class="pipe-num">08</div>
+      <div class="pipe-content">
+        <div class="pipe-title">Results sent back to browser as JSON</div>
+        <p class="pipe-detail">Annotated image + score + matched/missed keywords shown on screen</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="multi-q">
+  <div class="section-label">Section 04</div>
+  <h2>What about multiple questions on one sheet?</h2>
+  <p>
+    This is a real limitation right now. The system detects visual blocks top to bottom —
+    it doesn't know which block is Q1 and which is Q2. Here's how it currently handles it.
+  </p>
+
+  <div class="qa-box">
+    <div class="qa-tab-row">
+      <div class="qa-tab active" onclick="showTab('current',event)">How it works now</div>
+      <div class="qa-tab"       onclick="showTab('input',event)">How to give input</div>
+      <div class="qa-tab"       onclick="showTab('workaround',event)">Workaround</div>
+    </div>
+
+    <div class="qa-panel active" id="tab-current">
+      <p>If a sheet has 3 answers, the system finds 3 blocks in order. It joins all 3 into one string and compares with the teacher's combined answer. So right now you get one score for the whole sheet, not one per question.</p>
+      <p>If a student did Q1 and Q3 well but Q2 badly, that gets averaged out and you can't see it separately.</p>
+    </div>
+
+    <div class="qa-panel" id="tab-input">
+      <p>For 3 questions, write all 3 answers together in the teacher answer box, one after the other:</p>
+      <div class="code-block">
+<span class="cg">1) Green revolution and white revolution were set up by the government.
+Farmers were given crop insurance. Kisan Credit Card was introduced.</span>
+
+<span class="cg">2) Second answer here...</span>
+
+<span class="cg">3) Third answer here...</span>
+      </div>
+      <p>The system combines all student blocks and compares with this combined teacher text. It's rough but works for checking overall topic coverage.</p>
+    </div>
+
+    <div class="qa-panel" id="tab-workaround">
+      <p>Right now the cleanest way is to crop the image to just one question's answer and upload that separately with just that question's model answer. Repeat for each question. Manual but gives accurate per-question scores.</p>
+      <p>The plan for the next version is to detect question labels like "Q1", "1)", "2." in the sheet using OCR and use those as automatic separators.</p>
+      <div class="code-block">
+<span class="cc"># Planned format for next version</span>
+
+<span class="ca">Q1:</span> <span class="cg">Green revolution and white revolution...</span>
+<span class="ca">Q2:</span> <span class="cg">Answer for question 2...</span>
+<span class="ca">Q3:</span> <span class="cg">Answer for question 3...</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="limits">
+  <div class="section-label">Section 05</div>
+  <h2>What doesn't work well yet</h2>
+
+  <div class="limit-grid">
+    <div class="limit-card now">
+      <div class="lc-badge now">Current problem</div>
+      <div class="lc-title">OCR accuracy on messy handwriting</div>
+      <p class="lc-desc">Tesseract reads decent handwriting okay but struggles when it's really messy — "droughts" becomes "fleeds", "Kisan" becomes "Kison".</p>
+    </div>
+    <div class="limit-card now">
+      <div class="lc-badge now">Current problem</div>
+      <div class="lc-title">No per-question score</div>
+      <p class="lc-desc">All questions on a sheet get one combined score. Can't say Q1 = 8/10 and Q2 = 4/10 separately right now.</p>
+    </div>
+    <div class="limit-card now">
+      <div class="lc-badge now">Current problem</div>
+      <div class="lc-title">TF-IDF matches words, not meaning</div>
+      <p class="lc-desc">"Loans were given by banks" and "credit was provided by financial institutions" mean the same thing but score low because the actual words don't overlap.</p>
+    </div>
+    <div class="limit-card now">
+      <div class="lc-badge now">Current problem</div>
+      <div class="lc-title">No PDF support</div>
+      <p class="lc-desc">Only accepts image files. PDF answer sheets can't be uploaded directly yet.</p>
+    </div>
+    <div class="limit-card next">
+      <div class="lc-badge next">Next version</div>
+      <div class="lc-title">Auto question detection</div>
+      <p class="lc-desc">Detect "Q1", "1)", "2." labels in the sheet and automatically split and score each question separately.</p>
+    </div>
+    <div class="limit-card next">
+      <div class="lc-badge next">Next version</div>
+      <div class="lc-title">PDF upload</div>
+      <p class="lc-desc">Convert PDF pages to images before processing so teachers can upload scanned PDFs directly.</p>
+    </div>
+    <div class="limit-card later">
+      <div class="lc-badge later">Later</div>
+      <div class="lc-title">Better similarity — Sentence-BERT</div>
+      <p class="lc-desc">Replace TF-IDF with a model that understands meaning so paraphrased answers get fair scores.</p>
+    </div>
+    <div class="limit-card later">
+      <div class="lc-badge later">Later</div>
+      <div class="lc-title">Full class report</div>
+      <p class="lc-desc">Upload sheets for all students, get a report with everyone's scores, class average, and which questions were most commonly wrong.</p>
+    </div>
+  </div>
+</section>
+
+<section id="roadmap">
+  <div class="section-label">Section 06</div>
+  <h2>What's planned next</h2>
+
+  <div class="timeline">
+    <div class="tl-item chosen">
+      <div class="tl-status status-chosen">Phase 1 — done</div>
+      <div class="tl-title">Working prototype</div>
+      <p class="tl-desc">Upload image → detect blocks → read text → compare with teacher answer → show score and annotated image in a browser. Runs locally.</p>
+    </div>
+    <div class="tl-item future">
+      <div class="tl-status status-future">Phase 2 — next</div>
+      <div class="tl-title">Per-question scoring + PDF + deploy online</div>
+      <p class="tl-desc">Detect question labels automatically so each question gets its own score. Accept PDF uploads. Put it online so the teacher doesn't need to run it locally.</p>
+    </div>
+    <div class="tl-item future">
+      <div class="tl-status status-future">Phase 3 — future</div>
+      <div class="tl-title">Semantic scoring + full class reports</div>
+      <p class="tl-desc">Switch from TF-IDF to a model that understands meaning. Batch process an entire class. Generate a report per student with scores and feedback.</p>
+    </div>
+  </div>
+</section>
+
+<footer>OpenCV · Tesseract · scikit-learn · Flask &nbsp;·&nbsp; AUTOMATED_EDTECH_GRADING v1</footer>
+
+<script>
+  function showTab(name, event) {
+    document.querySelectorAll('.qa-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.qa-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    event.target.classList.add('active');
+  }
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+        const link = document.querySelector(`nav a[href="#${entry.target.id}"]`);
+        if (link) link.classList.add('active');
+      }
+    });
+  }, { threshold: 0.3 });
+  document.querySelectorAll('section[id]').forEach(s => observer.observe(s));
+</script>
+</body>
+</html>
