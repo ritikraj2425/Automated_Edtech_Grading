@@ -52,10 +52,6 @@ def keyword_breakdown(student_text, teacher_text):
 
 
 def mark_answer(student_text, teacher_text, total=10):
-    """
-    Main entry point called by Flask.
-    Returns a dict with all result fields.
-    """
     sim            = compute_similarity(student_text, teacher_text)
     marks          = similarity_to_marks(sim, total)
     grade_str      = grade(marks, total)

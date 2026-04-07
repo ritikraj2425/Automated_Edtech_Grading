@@ -4,9 +4,6 @@ import pytesseract
 from PIL import Image
 from scipy.ndimage import uniform_filter1d
 
-# Windows users: uncomment and set your path
-# pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-
 MIN_HEIGHT      = 40
 MIN_WIDTH_RATIO = 0.3
 GAP_TOLERANCE   = 20
@@ -91,15 +88,11 @@ def annotate(img, blocks):
 
 
 def process_image(image_path):
-    """
-    Main entry point called by Flask.
-    Returns: (annotated_img_bytes, list of extracted text strings per block)
-    """
+
     img    = cv2.imread(image_path)
     blocks = detect_blocks(img)
     texts  = [ocr_block(img, *b) for b in blocks]
     ann    = annotate(img, blocks)
 
-    # Encode annotated image to bytes for sending to browser
     _, buf = cv2.imencode(".png", ann)
     return buf.tobytes(), texts
