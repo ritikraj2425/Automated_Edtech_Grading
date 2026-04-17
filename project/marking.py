@@ -4,7 +4,6 @@ import numpy as np
 from sentence_transformers import SentenceTransformer, util
 
 # ── Load Sentence-BERT model (once at startup, ~80MB, CPU-friendly) ──
-os.environ.setdefault("HF_TOKEN", "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")
 sbert_model = SentenceTransformer('all-MiniLM-L6-v2')
 
 STOPWORDS = {

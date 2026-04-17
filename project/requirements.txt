@@ -6,3 +6,4 @@ numpy
 scipy
 sentence-transformers
 pdf2image
+python-dotenv

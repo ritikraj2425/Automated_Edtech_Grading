@@ -4,6 +4,9 @@ import tempfile
 from flask import Flask, request, render_template, jsonify
 from werkzeug.utils import secure_filename
 from pdf2image import convert_from_path
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from ocr import process_image, process_pil_image
 from marking import mark_answer, mark_multiple_answers
