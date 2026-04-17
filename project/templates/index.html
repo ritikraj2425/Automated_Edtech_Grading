@@ -5,8 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Answer Sheet Evaluator</title>
+    <meta name="description" content="Upload handwritten answer sheets, get per-question scores using AI-powered OCR and semantic grading.">
     <link
-        href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap"
+        href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap"
         rel="stylesheet">
     <style>
         *,
@@ -25,8 +26,11 @@
             --muted: #7a776f;
             --accent: #2d6a4f;
             --accent-lt: #e8f4f0;
+            --accent-dark: #1b4332;
             --warn: #c0392b;
             --warn-lt: #fdf0ef;
+            --blue: #2563eb;
+            --blue-lt: #eff6ff;
             --mono: 'DM Mono', monospace;
             --sans: 'DM Sans', sans-serif;
         }
@@ -56,6 +60,18 @@
             font-size: 14px;
             color: var(--muted);
             margin-top: 4px;
+        }
+
+        .version-badge {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 500;
+            background: var(--accent-lt);
+            color: var(--accent);
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-left: 8px;
+            vertical-align: middle;
         }
 
         .container {
@@ -127,6 +143,74 @@
             font-weight: 500;
         }
 
+        /* ── Teacher Answer Blocks ── */
+        .answers-section {
+            margin-top: 20px;
+        }
+
+        .answers-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .answers-header p {
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .answer-block {
+            position: relative;
+            margin-bottom: 12px;
+            animation: slideIn 0.25s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .answer-block-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .answer-block-label {
+            font-family: var(--mono);
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--accent);
+            background: var(--accent-lt);
+            padding: 2px 10px;
+            border-radius: 4px;
+        }
+
+        .btn-remove-answer {
+            background: none;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 18px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            transition: color 0.15s, background 0.15s;
+            line-height: 1;
+        }
+
+        .btn-remove-answer:hover {
+            color: var(--warn);
+            background: var(--warn-lt);
+        }
+
         /* ── Textarea ── */
         textarea {
             width: 100%;
@@ -137,7 +221,7 @@
             border-radius: 8px;
             padding: 14px;
             resize: vertical;
-            min-height: 120px;
+            min-height: 100px;
             background: var(--bg);
             color: var(--text);
             outline: none;
@@ -146,6 +230,49 @@
 
         textarea:focus {
             border-color: var(--accent);
+        }
+
+        /* ── Add Answer Button ── */
+        .btn-add-answer {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: none;
+            border: 1.5px dashed var(--border);
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-family: var(--sans);
+            font-size: 13px;
+            color: var(--muted);
+            cursor: pointer;
+            width: 100%;
+            justify-content: center;
+            transition: border-color 0.2s, color 0.2s, background 0.2s;
+        }
+
+        .btn-add-answer:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-lt);
+        }
+
+        .btn-add-answer .plus-icon {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent-lt);
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .btn-add-answer:hover .plus-icon {
+            background: var(--accent);
+            color: #fff;
         }
 
         /* ── Button ── */
@@ -215,7 +342,7 @@
             gap: 20px;
         }
 
-        /* Score bar */
+        /* ── Combined Score (top summary) ── */
         .score-row {
             display: flex;
             align-items: center;
@@ -295,7 +422,79 @@
             font-family: var(--mono);
         }
 
-        /* Keywords */
+        /* ── Per-question cards ── */
+        .per-q-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .per-q-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 18px;
+            transition: box-shadow 0.2s;
+        }
+
+        .per-q-card:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .per-q-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .per-q-label {
+            font-family: var(--mono);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--accent);
+        }
+
+        .per-q-score {
+            font-family: var(--mono);
+            font-size: 20px;
+            font-weight: 400;
+        }
+
+        .per-q-score .q-total {
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .per-q-bar {
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .per-q-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.8s ease;
+        }
+
+        .per-q-bar-fill.excellent { background: #2d6a4f; }
+        .per-q-bar-fill.good { background: #3b8c5e; }
+        .per-q-bar-fill.average { background: #d4a017; }
+        .per-q-bar-fill.below { background: #e67e22; }
+        .per-q-bar-fill.poor { background: #c0392b; }
+
+        .per-q-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 12px;
+            color: var(--muted);
+            font-family: var(--mono);
+        }
+
+        /* ── Keywords ── */
         .kw-section {
             margin-top: 16px;
         }
@@ -332,14 +531,56 @@
             color: var(--warn);
         }
 
-        /* Annotated image */
-        #ann-img {
+        /* ── Collapsed Q-details ── */
+        .q-details-toggle {
+            background: none;
+            border: none;
+            color: var(--accent);
+            font-size: 12px;
+            font-family: var(--sans);
+            cursor: pointer;
+            padding: 4px 0;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .q-details-toggle:hover {
+            text-decoration: underline;
+        }
+
+        .q-details {
+            display: none;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border);
+        }
+
+        .q-details.show {
+            display: block;
+        }
+
+        /* ── Annotated image ── */
+        .ann-img {
             width: 100%;
             border-radius: 6px;
             border: 1px solid var(--border);
+            margin-bottom: 10px;
         }
 
-        /* OCR text blocks */
+        .ann-img:last-child {
+            margin-bottom: 0;
+        }
+
+        .page-label {
+            font-size: 12px;
+            font-family: var(--mono);
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+
+        /* ── OCR text blocks ── */
         .block-item {
             background: var(--bg);
             border-radius: 6px;
@@ -361,7 +602,7 @@
             margin-bottom: 6px;
         }
 
-        /* Error */
+        /* ── Error ── */
         .error-msg {
             background: var(--warn-lt);
             border: 1px solid #f5c6c2;
@@ -375,14 +616,21 @@
         .error-msg.show {
             display: block;
         }
+
+        /* ── Hint text ── */
+        .hint {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 4px;
+        }
     </style>
 </head>
 
 <body>
 
     <header>
-        <h1>Answer Sheet Evaluator</h1>
-        <p>Upload a handwritten answer sheet and provide the correct answer to get a score.</p>
+        <h1>Answer Sheet Evaluator <span class="version-badge">v2</span></h1>
+        <p>Upload a handwritten answer sheet (image or PDF) and provide correct answers to get per-question scores.</p>
     </header>
 
     <div class="container">
@@ -393,18 +641,28 @@
 
             <form id="eval-form">
 
-                <p style="font-size:13px; color:var(--muted); margin-bottom:8px;">Answer sheet image</p>
+                <p style="font-size:13px; color:var(--muted); margin-bottom:8px;">Answer sheet</p>
                 <div class="upload-zone" id="drop-zone">
-                    <input type="file" id="sheet-input" name="sheet" accept=".png,.jpg,.jpeg">
+                    <input type="file" id="sheet-input" name="sheet" accept=".png,.jpg,.jpeg,.pdf">
                     <div class="icon">&#128196;</div>
                     <p>Click to upload or drag and drop</p>
-                    <p style="font-size:12px; margin-top:4px;">PNG or JPG</p>
+                    <p style="font-size:12px; margin-top:4px;">PNG, JPG, or PDF</p>
                     <div class="filename" id="file-name"></div>
                 </div>
 
-                <p style="font-size:13px; color:var(--muted); margin: 20px 0 8px;">Correct answer</p>
-                <textarea id="teacher-input" name="teacher_answer"
-                    placeholder="Type or paste the model answer here..."></textarea>
+                <div class="answers-section">
+                    <div class="answers-header">
+                        <p>Correct answers</p>
+                    </div>
+                    <div id="answers-container">
+                        <!-- Answer blocks will be added here dynamically -->
+                    </div>
+                    <button type="button" class="btn-add-answer" id="btn-add-answer">
+                        <span class="plus-icon">+</span>
+                        Add another question's answer
+                    </button>
+                    <p class="hint" style="margin-top:8px;">Add one answer block per question. If only one is provided, the whole sheet gets a single combined score.</p>
+                </div>
 
                 <div style="margin-top:16px;">
                     <button type="submit" id="submit-btn">Evaluate</button>
@@ -422,9 +680,9 @@
         <!-- Results -->
         <div id="results">
 
-            <!-- Score card -->
-            <div class="card">
-                <div class="card-title">Score</div>
+            <!-- Combined Score card -->
+            <div class="card" id="combined-score-card">
+                <div class="card-title" id="score-card-title">Score</div>
                 <div class="score-row">
                     <div class="score-number" id="score-display">—</div>
                     <div class="score-right">
@@ -432,25 +690,33 @@
                         <div class="bar-track">
                             <div class="bar-fill" id="bar-fill" style="width:0%"></div>
                         </div>
-                        <div class="sim-label" id="sim-label">Similarity: —</div>
+                        <div class="sim-label" id="sim-label"></div>
                     </div>
                 </div>
 
-                <!-- Keywords -->
-                <div class="kw-section">
-                    <div class="kw-title">Keywords matched</div>
-                    <div class="kw-list" id="matched-kw"></div>
+                <!-- Keywords (shown in single mode) -->
+                <div id="single-keywords">
+                    <div class="kw-section">
+                        <div class="kw-title">Keywords matched</div>
+                        <div class="kw-list" id="matched-kw"></div>
+                    </div>
+                    <div class="kw-section" style="margin-top:12px;">
+                        <div class="kw-title">Keywords missed</div>
+                        <div class="kw-list" id="missed-kw"></div>
+                    </div>
                 </div>
-                <div class="kw-section" style="margin-top:12px;">
-                    <div class="kw-title">Keywords missed</div>
-                    <div class="kw-list" id="missed-kw"></div>
-                </div>
+            </div>
+
+            <!-- Per-question cards (shown in multi mode) -->
+            <div class="card" id="per-q-section" style="display:none;">
+                <div class="card-title">Per-question Breakdown</div>
+                <div class="per-q-grid" id="per-q-grid"></div>
             </div>
 
             <!-- Annotated image -->
             <div class="card">
                 <div class="card-title">Detected answer blocks</div>
-                <img id="ann-img" src="" alt="Annotated sheet">
+                <div id="ann-images-container"></div>
             </div>
 
             <!-- Extracted text -->
@@ -472,13 +738,87 @@
         const results = document.getElementById('results');
         const errorMsg = document.getElementById('error-msg');
         const submitBtn = document.getElementById('submit-btn');
+        const answersContainer = document.getElementById('answers-container');
+        const btnAddAnswer = document.getElementById('btn-add-answer');
 
-        // File name preview
+        let answerCount = 0;
+
+        // ── Add initial answer block ──
+        addAnswerBlock();
+
+        function addAnswerBlock() {
+            answerCount++;
+            const div = document.createElement('div');
+            div.className = 'answer-block';
+            div.id = `answer-block-${answerCount}`;
+            div.dataset.num = answerCount;
+            div.innerHTML = `
+                <div class="answer-block-header">
+                    <span class="answer-block-label">Q${answerCount}</span>
+                    ${answerCount > 1 ? `<button type="button" class="btn-remove-answer" title="Remove" onclick="removeAnswerBlock(${answerCount})">×</button>` : ''}
+                </div>
+                <textarea name="teacher_answer_${answerCount}" placeholder="Type or paste the model answer for Question ${answerCount}..."></textarea>
+            `;
+            answersContainer.appendChild(div);
+            // Focus the new textarea
+            div.querySelector('textarea').focus();
+            updateLabels();
+        }
+
+        function removeAnswerBlock(num) {
+            const el = document.getElementById(`answer-block-${num}`);
+            if (el) {
+                el.style.animation = 'slideIn 0.2s ease reverse';
+                setTimeout(() => {
+                    el.remove();
+                    updateLabels();
+                }, 180);
+            }
+        }
+
+        function updateLabels() {
+            const blocks = answersContainer.querySelectorAll('.answer-block');
+            blocks.forEach((block, i) => {
+                const label = block.querySelector('.answer-block-label');
+                label.textContent = `Q${i + 1}`;
+                const textarea = block.querySelector('textarea');
+                const newNum = i + 1;
+                textarea.name = `teacher_answer_${newNum}`;
+                textarea.placeholder = `Type or paste the model answer for Question ${newNum}...`;
+                // Update remove button
+                const removeBtn = block.querySelector('.btn-remove-answer');
+                if (i === 0 && blocks.length === 1) {
+                    if (removeBtn) removeBtn.remove();
+                } else if (!removeBtn && i > 0) {
+                    // No remove button but should have one — recreate header
+                }
+            });
+            // Ensure first block has remove button if there are multiple
+            if (blocks.length > 1) {
+                blocks.forEach((block, i) => {
+                    let removeBtn = block.querySelector('.btn-remove-answer');
+                    if (!removeBtn) {
+                        const header = block.querySelector('.answer-block-header');
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'btn-remove-answer';
+                        btn.title = 'Remove';
+                        btn.textContent = '×';
+                        btn.onclick = () => removeAnswerBlock(block.id.split('-').pop());
+                        header.appendChild(btn);
+                    }
+                });
+            }
+        }
+
+        btnAddAnswer.addEventListener('click', addAnswerBlock);
+
+        // ── File name preview ──
         sheetInput.addEventListener('change', () => {
             fileLabel.textContent = sheetInput.files[0]?.name || '';
         });
 
-        // Drag and drop
+        // ── Drag and drop ──
         dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
         dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
         dropZone.addEventListener('drop', e => {
@@ -490,11 +830,10 @@
             }
         });
 
-        // Submit
+        // ── Submit ──
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            // Reset UI
             errorMsg.classList.remove('show');
             results.classList.remove('show');
             spinner.classList.add('active');
@@ -502,7 +841,12 @@
 
             const fd = new FormData();
             fd.append('sheet', sheetInput.files[0]);
-            fd.append('teacher_answer', document.getElementById('teacher-input').value);
+
+            // Append all teacher answers
+            const textareas = answersContainer.querySelectorAll('textarea');
+            textareas.forEach((ta, i) => {
+                fd.append(`teacher_answer_${i + 1}`, ta.value);
+            });
 
             try {
                 const res = await fetch('/evaluate', { method: 'POST', body: fd });
@@ -510,7 +854,11 @@
 
                 if (data.error) throw new Error(data.error);
 
-                renderResults(data);
+                if (data.mode === 'multi') {
+                    renderMultiResults(data);
+                } else {
+                    renderSingleResults(data);
+                }
 
             } catch (err) {
                 errorMsg.textContent = err.message;
@@ -521,26 +869,24 @@
             }
         });
 
-        function renderResults(data) {
-            // Score
+        // ── Render: Single mode (backward compatible) ──
+        function renderSingleResults(data) {
+            document.getElementById('score-card-title').textContent = 'Score';
             document.getElementById('score-display').innerHTML =
                 `${data.marks}<span> / ${data.total}</span>`;
 
-            // Grade badge
             const badge = document.getElementById('grade-badge');
             const gradeKey = data.grade.replace(' ', '');
             badge.textContent = data.grade;
             badge.className = `grade-badge grade-${gradeKey}`;
 
-            // Bar
             const pct = (data.marks / data.total) * 100;
             document.getElementById('bar-fill').style.width = pct + '%';
-
-            // Similarity
             document.getElementById('sim-label').textContent =
                 `Similarity score: ${data.similarity} / 1.0`;
 
             // Keywords
+            document.getElementById('single-keywords').style.display = 'block';
             const matchEl = document.getElementById('matched-kw');
             const missEl = document.getElementById('missed-kw');
             matchEl.innerHTML = data.matched.length
@@ -550,19 +896,113 @@
                 ? data.missed.map(k => `<span class="kw kw-miss">${k}</span>`).join('')
                 : '<span style="font-size:13px;color:var(--muted)">None</span>';
 
-            // Annotated image
-            document.getElementById('ann-img').src = 'data:image/png;base64,' + data.image;
+            // Hide per-question section
+            document.getElementById('per-q-section').style.display = 'none';
+
+            // Images
+            renderImages(data.images);
 
             // Block texts
-            const blocksEl = document.getElementById('blocks-list');
-            blocksEl.innerHTML = data.blocks.map((t, i) => `
-      <div class="block-item">
-        <div class="block-label">Block ${i + 1}</div>${t || '(no text detected)'}
-      </div>
-    `).join('');
+            renderBlocks(data.blocks);
 
             results.classList.add('show');
             results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // ── Render: Multi-question mode ──
+        function renderMultiResults(data) {
+            document.getElementById('score-card-title').textContent = 'Combined Score';
+            document.getElementById('score-display').innerHTML =
+                `${data.combined_marks}<span> / ${data.combined_total}</span>`;
+
+            const badge = document.getElementById('grade-badge');
+            const gradeKey = data.combined_grade.replace(' ', '');
+            badge.textContent = data.combined_grade;
+            badge.className = `grade-badge grade-${gradeKey}`;
+
+            const pct = (data.combined_marks / data.combined_total) * 100;
+            document.getElementById('bar-fill').style.width = pct + '%';
+            document.getElementById('sim-label').textContent = '';
+
+            // Hide single-mode keywords
+            document.getElementById('single-keywords').style.display = 'none';
+
+            // Per-question cards
+            const perQSection = document.getElementById('per-q-section');
+            perQSection.style.display = 'block';
+            const grid = document.getElementById('per-q-grid');
+            grid.innerHTML = data.per_question.map((q, i) => {
+                const qPct = (q.marks / q.total) * 100;
+                const barClass = qPct >= 85 ? 'excellent' : qPct >= 70 ? 'good' : qPct >= 55 ? 'average' : qPct >= 40 ? 'below' : 'poor';
+                const gKey = q.grade.replace(' ', '');
+                const detailId = `q-detail-${i}`;
+                return `
+                    <div class="per-q-card">
+                        <div class="per-q-header">
+                            <span class="per-q-label">Question ${q.question}</span>
+                            <span class="per-q-score">${q.marks}<span class="q-total"> / ${q.total}</span></span>
+                        </div>
+                        <div class="per-q-bar">
+                            <div class="per-q-bar-fill ${barClass}" style="width:${qPct}%"></div>
+                        </div>
+                        <div class="per-q-meta">
+                            <span class="grade-badge grade-${gKey}" style="margin-bottom:0;">${q.grade}</span>
+                            <span>Similarity: ${q.similarity}</span>
+                        </div>
+                        <button type="button" class="q-details-toggle" onclick="toggleQDetail('${detailId}', this)">
+                            ▸ Show keywords
+                        </button>
+                        <div class="q-details" id="${detailId}">
+                            <div class="kw-section">
+                                <div class="kw-title">Matched</div>
+                                <div class="kw-list">${q.matched.length
+                                    ? q.matched.map(k => `<span class="kw kw-match">${k}</span>`).join('')
+                                    : '<span style="font-size:12px;color:var(--muted)">None</span>'}
+                                </div>
+                            </div>
+                            <div class="kw-section" style="margin-top:10px;">
+                                <div class="kw-title">Missed</div>
+                                <div class="kw-list">${q.missed.length
+                                    ? q.missed.map(k => `<span class="kw kw-miss">${k}</span>`).join('')
+                                    : '<span style="font-size:12px;color:var(--muted)">None</span>'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Images
+            renderImages(data.images);
+
+            // Block texts
+            renderBlocks(data.blocks);
+
+            results.classList.add('show');
+            results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function toggleQDetail(id, btn) {
+            const el = document.getElementById(id);
+            el.classList.toggle('show');
+            btn.textContent = el.classList.contains('show') ? '▾ Hide keywords' : '▸ Show keywords';
+        }
+
+        function renderImages(images) {
+            const container = document.getElementById('ann-images-container');
+            container.innerHTML = images.map((b64, i) => {
+                const label = images.length > 1 ? `<div class="page-label">Page ${i + 1}</div>` : '';
+                return `${label}<img class="ann-img" src="data:image/png;base64,${b64}" alt="Annotated sheet${images.length > 1 ? ' page ' + (i+1) : ''}">`;
+            }).join('');
+        }
+
+        function renderBlocks(blocks) {
+            const blocksEl = document.getElementById('blocks-list');
+            blocksEl.innerHTML = blocks.map((t, i) => `
+                <div class="block-item">
+                    <div class="block-label">Block ${i + 1}</div>${t || '(no text detected)'}
+                </div>
+            `).join('');
         }
     </script>
 

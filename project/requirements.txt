@@ -1,9 +1,8 @@
 flask
 opencv-python
 pillow
-pytesseract
+easyocr
 numpy
 scipy
-scikit-learn
-# source venv/bin/activate
-# http://127.0.0.1:5000/
+sentence-transformers
+pdf2image
