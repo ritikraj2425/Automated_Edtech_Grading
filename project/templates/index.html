@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Answer Sheet Evaluator</title>
+    <title>Answer Sheet Evaluator — Phase 3</title>
     <meta name="description" content="Upload handwritten answer sheets, get per-question scores using AI-powered OCR and semantic grading.">
     <link
         href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap"
@@ -72,6 +72,147 @@
             border-radius: 10px;
             margin-left: 8px;
             vertical-align: middle;
+        }
+
+        /* ── Benchmark toggle ── */
+        .benchmark-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 14px;
+            padding: 12px 14px;
+            background: var(--blue-lt);
+            border: 1px solid #c7d7f0;
+            border-radius: 8px;
+        }
+
+        .benchmark-toggle input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--blue);
+            cursor: pointer;
+        }
+
+        .benchmark-toggle label {
+            font-size: 13px;
+            color: var(--text);
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .benchmark-toggle .bm-hint {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        /* ── Benchmark comparison table ── */
+        .benchmark-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 24px;
+            border-left: 4px solid var(--blue);
+        }
+
+        .benchmark-card .card-title {
+            color: var(--blue);
+        }
+
+        .bm-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 13px;
+        }
+
+        .bm-table th {
+            text-align: left;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--muted);
+            padding: 8px 12px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .bm-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .bm-table tr:last-child td {
+            border-bottom: none;
+            font-weight: 500;
+        }
+
+        .bm-table .bm-ours {
+            font-family: var(--mono);
+            color: var(--accent);
+            font-weight: 500;
+        }
+
+        .bm-table .bm-gemini {
+            font-family: var(--mono);
+            color: var(--blue);
+            font-weight: 500;
+        }
+
+        .bm-table .bm-diff {
+            font-family: var(--mono);
+            font-size: 12px;
+        }
+
+        .bm-diff.positive { color: #1a6b45; }
+        .bm-diff.negative { color: var(--warn); }
+        .bm-diff.neutral  { color: var(--muted); }
+
+        .bm-reasoning {
+            font-size: 12px;
+            color: var(--muted);
+            font-style: italic;
+            max-width: 200px;
+        }
+
+        .bm-error {
+            padding: 12px;
+            background: var(--warn-lt);
+            border-radius: 6px;
+            color: var(--warn);
+            font-size: 13px;
+            margin-top: 8px;
+        }
+
+        .bm-summary {
+            display: flex;
+            gap: 24px;
+            margin-top: 16px;
+            padding-top: 14px;
+            border-top: 1px solid var(--border);
+        }
+
+        .bm-summary-item {
+            text-align: center;
+            flex: 1;
+        }
+
+        .bm-summary-item .bm-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .bm-summary-item .bm-value {
+            font-family: var(--mono);
+            font-size: 22px;
+            font-weight: 400;
+        }
+
+        .bm-summary-item .bm-value span {
+            font-size: 13px;
+            color: var(--muted);
         }
 
         .container {
@@ -629,7 +770,7 @@
 <body>
 
     <header>
-        <h1>Answer Sheet Evaluator <span class="version-badge">v2</span></h1>
+        <h1>Answer Sheet Evaluator <span class="version-badge">v3</span></h1>
         <p>Upload a handwritten answer sheet (image or PDF) and provide correct answers to get per-question scores.</p>
     </header>
 
@@ -662,6 +803,15 @@
                         Add another question's answer
                     </button>
                     <p class="hint" style="margin-top:8px;">Add one answer block per question. If only one is provided, the whole sheet gets a single combined score.</p>
+                </div>
+
+                <!-- Benchmark toggle -->
+                <div class="benchmark-toggle" id="benchmark-toggle" style="display:none;">
+                    <input type="checkbox" id="benchmark-check" name="benchmark">
+                    <label for="benchmark-check">
+                        Compare with Gemini AI
+                        <div class="bm-hint">Sends the same sheet to Google Gemini for independent grading comparison</div>
+                    </label>
                 </div>
 
                 <div style="margin-top:16px;">
@@ -725,6 +875,12 @@
                 <div id="blocks-list"></div>
             </div>
 
+            <!-- Gemini Benchmark comparison -->
+            <div class="benchmark-card" id="benchmark-section" style="display:none;">
+                <div class="card-title">⚡ Benchmark: Our System vs Gemini</div>
+                <div id="benchmark-content"></div>
+            </div>
+
         </div><!-- /results -->
 
     </div><!-- /container -->
@@ -742,6 +898,14 @@
         const btnAddAnswer = document.getElementById('btn-add-answer');
 
         let answerCount = 0;
+        const benchmarkCheck = document.getElementById('benchmark-check');
+        const benchmarkToggle = document.getElementById('benchmark-toggle');
+
+        // ── Show benchmark toggle if Gemini is available ──
+        const isGeminiAvailable = "{{ 'true' if gemini_available else 'false' }}" === "true";
+        if (isGeminiAvailable) {
+            benchmarkToggle.style.display = 'flex';
+        }
 
         // ── Add initial answer block ──
         addAnswerBlock();
@@ -848,6 +1012,11 @@
                 fd.append(`teacher_answer_${i + 1}`, ta.value);
             });
 
+            // Append benchmark flag
+            if (benchmarkCheck && benchmarkCheck.checked) {
+                fd.append('benchmark', 'true');
+            }
+
             try {
                 const res = await fetch('/evaluate', { method: 'POST', body: fd });
                 const data = await res.json();
@@ -859,6 +1028,9 @@
                 } else {
                     renderSingleResults(data);
                 }
+
+                // Render benchmark comparison if present
+                renderBenchmark(data);
 
             } catch (err) {
                 errorMsg.textContent = err.message;
@@ -1003,6 +1175,102 @@
                     <div class="block-label">Block ${i + 1}</div>${t || '(no text detected)'}
                 </div>
             `).join('');
+        }
+
+        // ── Benchmark comparison ──
+        function renderBenchmark(data) {
+            const bmSection = document.getElementById('benchmark-section');
+            const bmContent = document.getElementById('benchmark-content');
+
+            if (!data.benchmark || !data.benchmark.available || !data.benchmark.gemini_results || data.benchmark.gemini_results.length === 0) {
+                bmSection.style.display = 'none';
+                if (data.benchmark && data.benchmark.error) {
+                    bmSection.style.display = 'block';
+                    bmContent.innerHTML = `<div class="bm-error">Gemini benchmark error: ${data.benchmark.error}</div>`;
+                }
+                return;
+            }
+
+            bmSection.style.display = 'block';
+
+            const geminiResults = data.benchmark.gemini_results;
+            const isMulti = data.mode === 'multi';
+
+            // Build per-question comparison rows
+            let rows = '';
+            if (isMulti && data.per_question) {
+                data.per_question.forEach((q, i) => {
+                    const gq = geminiResults.find(g => g.question === q.question) || geminiResults[i];
+                    const gMarks = gq ? gq.marks : '—';
+                    const gReason = gq ? (gq.reasoning || '') : '';
+                    const diff = gq ? (q.marks - gq.marks).toFixed(1) : '—';
+                    const diffClass = diff > 0 ? 'positive' : diff < 0 ? 'negative' : 'neutral';
+                    const diffStr = diff > 0 ? `+${diff}` : diff;
+                    rows += `
+                        <tr>
+                            <td>Q${q.question}</td>
+                            <td class="bm-ours">${q.marks} / ${q.total}</td>
+                            <td class="bm-gemini">${gMarks} / ${q.total}</td>
+                            <td class="bm-diff ${diffClass}">${diffStr}</td>
+                            <td class="bm-reasoning">${gReason}</td>
+                        </tr>`;
+                });
+                // Total row
+                const ourTotal = data.combined_marks;
+                const gemTotal = data.benchmark.gemini_total;
+                const totalDiff = (ourTotal - gemTotal).toFixed(1);
+                const totalDiffClass = totalDiff > 0 ? 'positive' : totalDiff < 0 ? 'negative' : 'neutral';
+                const totalDiffStr = totalDiff > 0 ? `+${totalDiff}` : totalDiff;
+                rows += `
+                    <tr>
+                        <td><strong>Total</strong></td>
+                        <td class="bm-ours">${ourTotal} / ${data.combined_total}</td>
+                        <td class="bm-gemini">${gemTotal} / ${data.benchmark.gemini_grand_total}</td>
+                        <td class="bm-diff ${totalDiffClass}">${totalDiffStr}</td>
+                        <td></td>
+                    </tr>`;
+            } else {
+                // Single mode
+                const gq = geminiResults[0];
+                const gMarks = gq ? gq.marks : '—';
+                const gReason = gq ? (gq.reasoning || '') : '';
+                const diff = gq ? (data.marks - gq.marks).toFixed(1) : '—';
+                const diffClass = diff > 0 ? 'positive' : diff < 0 ? 'negative' : 'neutral';
+                const diffStr = diff > 0 ? `+${diff}` : diff;
+                rows = `
+                    <tr>
+                        <td>Overall</td>
+                        <td class="bm-ours">${data.marks} / ${data.total}</td>
+                        <td class="bm-gemini">${gMarks} / ${data.total}</td>
+                        <td class="bm-diff ${diffClass}">${diffStr}</td>
+                        <td class="bm-reasoning">${gReason}</td>
+                    </tr>`;
+            }
+
+            bmContent.innerHTML = `
+                <table class="bm-table">
+                    <thead>
+                        <tr>
+                            <th>Question</th>
+                            <th>Our System</th>
+                            <th>Gemini</th>
+                            <th>Diff</th>
+                            <th>Gemini Reasoning</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+                <div class="bm-summary">
+                    <div class="bm-summary-item">
+                        <div class="bm-label">Our System</div>
+                        <div class="bm-value" style="color:var(--accent);">${isMulti ? data.combined_marks : data.marks}<span> / ${isMulti ? data.combined_total : data.total}</span></div>
+                    </div>
+                    <div class="bm-summary-item">
+                        <div class="bm-label">Gemini</div>
+                        <div class="bm-value" style="color:var(--blue);">${data.benchmark.gemini_total}<span> / ${data.benchmark.gemini_grand_total}</span></div>
+                    </div>
+                </div>
+            `;
         }
     </script>
 

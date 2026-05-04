@@ -1,9 +1,12 @@
 flask
 opencv-python
 pillow
-easyocr
 numpy
 scipy
 sentence-transformers
 pdf2image
 python-dotenv
+transformers
+torch
+torchvision
+google-generativeai

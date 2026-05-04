@@ -1,10 +1,17 @@
 import os
 import re
 import numpy as np
+
+# ── Clear any expired / invalid HF token so public models download anonymously ──
+for _key in ("HF_TOKEN", "HUGGING_FACE_HUB_TOKEN", "HUGGINGFACE_HUB_TOKEN"):
+    os.environ.pop(_key, None)
+
 from sentence_transformers import SentenceTransformer, util
 
 # ── Load Sentence-BERT model (once at startup, ~80MB, CPU-friendly) ──
+print("[Marking] Loading Sentence-BERT (all-MiniLM-L6-v2)...")
 sbert_model = SentenceTransformer('all-MiniLM-L6-v2')
+print("[Marking] Sentence-BERT loaded.")
 
 STOPWORDS = {
     'and','the','of','in','to','a','is','are','was','were',
