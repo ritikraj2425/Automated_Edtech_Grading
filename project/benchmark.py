@@ -12,7 +12,7 @@ import base64
 import google.generativeai as genai
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 # ── Configure Gemini ──
 _api_key = os.getenv("GEMINI_API_KEY", "")
@@ -94,7 +94,7 @@ Respond ONLY with valid JSON in this exact format (no markdown, no code fences):
 """
 
         # Upload image to Gemini
-        model = genai.GenerativeModel("gemini-2.0-flash")
+        model = genai.GenerativeModel("gemini-2.5-pro")
 
         # Create image part
         image_part = {

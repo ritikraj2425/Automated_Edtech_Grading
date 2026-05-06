@@ -13,7 +13,7 @@ from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 import torch
 
 # ── Constants ──
-MIN_HEIGHT          = 40
+MIN_HEIGHT          = 35
 MIN_WIDTH_RATIO     = 0.3
 GAP_TOLERANCE       = 20
 LINE_GAP_TOLERANCE  = 10     # for intra-block line segmentation
@@ -117,7 +117,7 @@ def detect_blocks(img):
 
     # Determine the split threshold:
     # Use 2× the median gap, but at least MIN_BLOCK_GAP pixels
-    MIN_BLOCK_GAP = 15  # minimum gap in pixels to consider as block boundary
+    MIN_BLOCK_GAP = 20  # minimum gap in pixels to consider as block boundary
     median_gap = float(np.median(gaps)) if gaps else 0
     split_threshold = max(MIN_BLOCK_GAP, median_gap * 2.0)
 
